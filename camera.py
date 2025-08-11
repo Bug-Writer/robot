@@ -1,4 +1,3 @@
-# camera.py
 import pyrealsense2 as rs
 import numpy as np
 import open3d as o3d
@@ -16,6 +15,14 @@ class DepthCamera:
         # 对齐深度到彩色图像
         self.align = rs.align(rs.stream.color)
 
+        # ====== 添加 RealSense 滤波器 ======
+        self.spatial = rs.spatial_filter()       # 空间平滑
+        self.spatial.set_option(rs.option.holes_fill, 3)  # 填补小空洞（0~5）
+
+        self.temporal = rs.temporal_filter()     # 时间平滑
+
+        self.hole_filling = rs.hole_filling_filter()  # 空洞填补
+
         # 获取内参
         color_stream = self.profile.get_stream(rs.stream.color)
         intrinsics = color_stream.as_video_stream_profile().get_intrinsics()
@@ -28,7 +35,7 @@ class DepthCamera:
 
     def get_aligned_frames(self):
         """
-        获取对齐后的 RGB、深度图 和点云
+        获取对齐后的 RGB、深度图 和点云（深度平滑后）
         """
         frames = self.pipeline.wait_for_frames()
         aligned_frames = self.align.process(frames)
@@ -38,6 +45,11 @@ class DepthCamera:
 
         if not color_frame or not depth_frame:
             return None, None, None
+
+        # ====== 在这里应用滤波器 ======
+        depth_frame = self.spatial.process(depth_frame)
+        depth_frame = self.temporal.process(depth_frame)
+        depth_frame = self.hole_filling.process(depth_frame)
 
         color_image = np.asanyarray(color_frame.get_data())
         depth_image = np.asanyarray(depth_frame.get_data())
@@ -71,11 +83,19 @@ class DepthCamera:
         return color_image, depth_image, point_cloud
 
     def get_frames(self):
+        """
+        获取未对齐的 RGB 和深度图（深度平滑后）
+        """
         frames = self.pipeline.wait_for_frames()
         color_frame = frames.get_color_frame()
         depth_frame = frames.get_depth_frame()
         if not color_frame or not depth_frame:
             return None, None
+
+        # ====== 滤波 ======
+        depth_frame = self.spatial.process(depth_frame)
+        depth_frame = self.temporal.process(depth_frame)
+        depth_frame = self.hole_filling.process(depth_frame)
 
         color_image = np.asanyarray(color_frame.get_data())
         depth_image = np.asanyarray(depth_frame.get_data())
