@@ -1,6 +1,5 @@
 # main.py (refactored, adds "place to side" step)
 from time import sleep
-import sys
 import traceback
 
 import cv2
@@ -16,7 +15,6 @@ from calibration import transform_to_robot_frame, R_cam_to_robot
 from visualizer import Visualizer
 
 VISUALIZE = False            # 是否显示 Open3D 可视化（阻塞或占用线程），默认 False
-SIDE_OFFSET_MM = np.array([200.0, 0.0, 0.0])  # 在机械臂坐标系中放置偏移（毫米）
 SAFE_Z_ABOVE = 30.0          # 抓取上方安全高度（mm）
 LIFT_AFTER_PICK_MM = 50.0    # 抓取后抬升高度（mm）
 PLACE_Z_CLEAR_MM = 100.0     # 到达侧放位置时的安全高度（mm）
@@ -52,18 +50,14 @@ def place_object_to_side(robot, center_robot_mm, euler_deg):
         sleep(0.5)
 
         # 移动到侧放位置（在XY平面偏移 SIDE_OFFSET_MM，Z 到 PLACE_Z_CLEAR_MM 高度以避免碰撞）
-        side_pos = center_robot_mm + SIDE_OFFSET_MM
-        side_pos_safe = np.array([side_pos[0], side_pos[1], PLACE_Z_CLEAR_MM])
-        print(f"[ACTION] 移动到侧放安全位置 (mm): {side_pos_safe}")
-        robot.blinx_move_coordinate_all(
-            side_pos_safe[0], side_pos_safe[1], side_pos_safe[2],
-            euler_deg[0], euler_deg[1], euler_deg[2],
-            speed=40
-        )
+        print(f"[ACTION] 移动到侧放安全位置")
+        robot.blinx_move_angle(1, 45, -90)
         sleep(0.5)
 
         # 下降到放置高度（可调整为 center_robot_mm 的 Z 或更低）
-        place_pos = np.array([side_pos[0], side_pos[1], center_robot_mm[2]])
+        pos = robot.blinx_positive_solution()
+        print(f"[ACTION] print pos: {pos}")
+        place_pos = np.array([pos[0], pos[1], center_robot_mm[2]])
         print(f"[ACTION] 下降到放置位置 (mm): {place_pos}")
         robot.blinx_move_coordinate_all(
             place_pos[0], place_pos[1], place_pos[2],
@@ -77,14 +71,10 @@ def place_object_to_side(robot, center_robot_mm, euler_deg):
         sleep(0.5)
 
         # 抬升到安全高度（完成）
-        post_up = np.array([side_pos[0], side_pos[1], side_pos[2] + LIFT_AFTER_PICK_MM])
-        print(f"[ACTION] 放置后抬升 (mm): {post_up}")
-        robot.blinx_move_coordinate_all(
-            post_up[0], post_up[1], post_up[2],
-            180, 0, 0,  # 这里可以改为固定姿态或保持原姿态
-            speed=30
-        )
+        print(f"[ACTION] 放置后抬升")
+        robot.blinx_move_angle_all(-180, 0, 0, 0, 0, 0, speed=30)
         sleep(0.5)
+
         print("[ACTION] 放置完成。")
     except Exception:
         print("[ERROR] place_object_to_side 出现异常：")
@@ -131,7 +121,7 @@ def handle_detection(robot, processor, res, rgb_image, depth_image, intrinsics):
         print("========== 检测到一个物体 ==========")
         print(f"[相机坐标系] 中心坐标: {center}")
         print(f"[相机坐标系] 法向量: {normal}")
-        print(f"[机械臂坐标系] 中心坐标 (mm): {center_robot_mm}")
+        print(f"[机械臂坐标系] 中心坐标: {center_robot_mm}")
         print(f"[机械臂坐标系] 法向量: {normal_robot}")
         print("==================================")
 
