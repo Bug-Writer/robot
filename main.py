@@ -1,6 +1,5 @@
 # main.py (refactored, use logging instead of print)
 from time import sleep
-import traceback
 import logging
 
 import cv2
@@ -121,8 +120,18 @@ def handle_detection(robot, processor, res, rgb_image, depth_image, intrinsics):
             sleep(0.5)
 
             above_pos = center_robot_mm + np.array([0.0, 0.0, SAFE_Z_ABOVE])
+            above_pos = np.around(above_pos, decimals=3)  # 对numpy数组保留3位小数
+
+            # 对欧拉角保留3位小数精度（假设euler_deg是列表或元组）
+            euler_deg = [round(angle, 3) for angle in euler_deg]  # 对每个角度保留3位小数
+
+            # 日志输出和机器人移动均使用处理后的高精度值
             logger.info(f"移动到物体上方：{above_pos}, 姿态(°): {euler_deg}")
-            robot.blinx_move_coordinate_all(*above_pos, *euler_deg, speed=30)
+            robot.blinx_move_coordinate_all(
+                above_pos[0], above_pos[1], above_pos[2],
+                euler_deg[0], euler_deg[1], euler_deg[2],
+                speed=30
+            )
             sleep(0.5)
 
             logger.info(f"下降到物体位置：{center_robot_mm}, 姿态(°): {euler_deg}")
@@ -190,7 +199,6 @@ def main():
         camera.stop()
         robot.blinx_close()
         cv2.destroyAllWindows()
-
 
 if __name__ == "__main__":
     main()
