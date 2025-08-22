@@ -23,7 +23,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 # =========================================================
 
-VISUALIZE = False
+VISUALIZE = True
 SAFE_Z_ABOVE = 30.0
 LIFT_AFTER_PICK_MM = 50.0
 PLACE_Z_CLEAR_MM = 100.0
@@ -176,13 +176,16 @@ def process_frame(camera, robot, detector, processor, visualizer):
 
 
 def main():
+    # 获取用户输入的物体名称
+    target_name = input("Please enter the name of the object to detect: ")
+    
     camera = DepthCamera()
     robot = Blinx_Six_Robot_Control()
-    detector = YoloEDetector(model_path="yoloe-11m-seg.pt")
+    detector = YoloEDetector(model_path="yoloe-11m-seg.pt", target_names=[target_name])
     processor = MaskPointCloudProcessor()
     visualizer = Visualizer()
 
-    logger.info("系统启动中...")
+    logger.info(f"系统启动中... 将识别物体: {target_name}")
     robot.blinx_home()
     sleep(0.5)
     robot.blinx_move_angle(1, 45, -90)

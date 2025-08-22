@@ -4,13 +4,12 @@ import numpy as np
 import cv2
 
 class YoloEDetector:
-    def __init__(self, model_path="yoloe-11m-seg.pt"):
-        self.names = None
+    def __init__(self, model_path="yoloe-11m-seg.pt", target_names=None):
+        self.names = target_names if target_names is not None else ["mouse"]
         self.model = YOLO(model_path)  # 加载 YOLOE 掩膜分割模型
 
     def detect(self, image):
         # 执行推理（支持掩膜）
-        self.names = ["mouse"]
         self.model.set_classes(self.names, self.model.get_text_pe(self.names))
         results = self.model.predict(source=image, save=False, imgsz=640, conf=0.25, verbose=False)
 

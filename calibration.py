@@ -1,7 +1,7 @@
 # calibration.py
 import numpy as np
 
-# 相机到机械臂的变换矩阵（假设你已经标定得到了）
+# 相机到机械臂的变换矩阵
 # R 是 3x3 旋转矩阵，T 是 3x1 平移向量（单位米）
 
 R_cam_to_robot = np.array([
@@ -10,7 +10,7 @@ R_cam_to_robot = np.array([
     [0,  0,-1]   # Z轴 -> -Z轴
 ])
 
-T_cam_to_robot = np.array([0.25, 0.0, 0.44])  # 示例：相机在机械臂坐标系中位置是(30cm, 0cm, 20cm)
+T_cam_to_robot = np.array([0.25, 0.0, 0.42])
 
 def transform_to_robot_frame(point_cam):
     """
